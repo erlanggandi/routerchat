@@ -1,0 +1,11 @@
+services:
+  mikrotik-bot:
+    build: .
+    container_name: mikrotik_ai_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "3010:3010"
