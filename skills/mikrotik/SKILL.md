@@ -23,11 +23,45 @@ The MikroTik Backend Service runs locally on port **3010** (`http://localhost:30
 - Checking active firewall filter rules or router logs.
 - Proposing or executing network configuration changes with human-in-the-loop approval.
 
+## Multi-Router Operations (Input & Selection)
+
+Users can manage multiple routers simultaneously.
+
+### A. List All Registered Routers
+```bash
+curl -s http://localhost:3010/api/v1/routers
+```
+
+### B. Add / Register a New Router
+```bash
+curl -s -X POST http://localhost:3010/api/v1/routers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "cabang-surabaya",
+    "host": "192.168.10.1",
+    "port": 8728,
+    "username": "admin",
+    "password": "Password123"
+  }'
+```
+
+### C. Switch / Select Active Router for User
+```bash
+curl -s -X POST http://localhost:3010/api/v1/routers/select \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": 1, "router_id": 2}'
+```
+
+### D. Check Current Active Router
+```bash
+curl -s "http://localhost:3010/api/v1/routers/active?user_id=1"
+```
+
 ---
 
-## Quick API Operations
+## Quick Monitoring Operations
 
-The MikroTik Service exposes lightweight REST endpoints returning JSON. Use `curl` to query them directly.
+The MikroTik Service exposes lightweight REST endpoints returning JSON. Use `curl` to query them directly. Replace `1` with the target `router_id` or active router ID.
 
 ### 1. System Health (CPU, RAM, Uptime)
 ```bash

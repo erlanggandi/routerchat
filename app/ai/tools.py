@@ -172,6 +172,74 @@ def build_tools(
         except Exception as e:
             return f"Gagal membuat proposal konfigurasi: {str(e)}"
 
+    @tool
+    async def list_all_routers() -> str:
+        """Melihat daftar semua router MikroTik yang terdaftar di sistem dan mengetahui router mana yang sedang aktif dipilih saat ini."""
+        try:
+            routers = await crud.get_all_routers(db, active_only=False)
+            current_active = await crud.get_active_router_for_user(db, user_id)
+            active_id = current_active.id if current_active else None
+
+            output = []
+            for r in routers:
+                output.append({
+                    "id": r.id,
+                    "name": r.name,
+                    "host": f"{r.host}:{r.port}",
+                    "is_active_selection": (r.id == active_id),
+                    "description": r.description or "-",
+                })
+            return json.dumps(output, indent=2)
+        except Exception as e:
+            return f"Error mengambil daftar router: {str(e)}"
+
+    @tool
+    async def add_new_router(
+        name: str,
+        host: str,
+        username: str,
+        password: str,
+        port: int = 8728,
+        use_ssl: bool = False,
+        description: str = "",
+    ) -> str:
+        """Mendaftarkan perangkat router MikroTik baru ke dalam sistem agar bisa dikelola."""
+        try:
+            existing = await crud.get_router_by_name(db, name.strip())
+            if existing:
+                return f"Router dengan nama '{name}' sudah terdaftar sebelumnya (ID: {existing.id})."
+            new_r = await crud.create_router(
+                db=db,
+                name=name.strip(),
+                host=host.strip(),
+                username=username.strip(),
+                password=password.strip(),
+                port=port,
+                use_ssl=use_ssl,
+                description=description or None,
+            )
+            return f"Sukses mendaftarkan router baru '{new_r.name}' (ID: {new_r.id}) pada host {new_r.host}:{new_r.port}."
+        except Exception as e:
+            return f"Gagal menambahkan router: {str(e)}"
+
+    @tool
+    async def switch_active_router(router_name_or_id: str) -> str:
+        """Mengganti atau memilih router aktif yang ingin dikelola oleh pengguna (bisa menggunakan nama router atau ID router)."""
+        try:
+            target = router_name_or_id.strip()
+            if target.isdigit():
+                target_router = await crud.get_router_by_id(db, int(target))
+            else:
+                target_router = await crud.get_router_by_name(db, target)
+
+            if not target_router:
+                return f"Router '{target}' tidak ditemukan. Panggil tool list_all_routers untuk melihat nama router yang tersedia."
+
+            await crud.set_user_active_router(db, user_id, target_router.id)
+            return f"Berhasil mengalihkan sesi aktif! Sekarang Anda sedang mengelola router '{target_router.name}' ({target_router.host}:{target_router.port})."
+        except Exception as e:
+            return f"Gagal mengganti router aktif: {str(e)}"
+
     tools_list = [
         get_system_resource,
         get_interfaces,
@@ -180,6 +248,9 @@ def build_tools(
         get_firewall_filters,
         get_system_logs,
         propose_router_config,
+        list_all_routers,
+        add_new_router,
+        switch_active_router,
     ]
 
     return tools_list, pending_proposals

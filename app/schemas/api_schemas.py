@@ -46,3 +46,8 @@ class ApprovalActionSchema(BaseModel):
 class NotifyMessageSchema(BaseModel):
     text: str
     chat_id: Optional[str] = None
+
+
+class RouterSelectSchema(BaseModel):
+    user_id: int = Field(..., json_schema_extra={"example": 123456})
+    router_id: int = Field(..., json_schema_extra={"example": 1})

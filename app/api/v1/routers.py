@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.connection import get_db_session
 from app.database import crud
-from app.schemas.api_schemas import RouterCreateSchema, RouterOutSchema
+from app.schemas.api_schemas import RouterCreateSchema, RouterOutSchema, RouterSelectSchema
 
 router = APIRouter(prefix="/routers", tags=["Routers"])
 
@@ -41,6 +41,32 @@ async def create_router(
         description=payload.description,
     )
     return new_router
+
+
+@router.get("/active", response_model=RouterOutSchema)
+async def get_active_router(
+    user_id: int,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Get currently active router for a user."""
+    active = await crud.get_active_router_for_user(db, user_id)
+    if not active:
+        raise HTTPException(status_code=404, detail="No active router selected for this user.")
+    return active
+
+
+@router.post("/select", response_model=RouterOutSchema)
+async def select_active_router(
+    payload: RouterSelectSchema,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Set the active router for a user session."""
+    target = await crud.get_router_by_id(db, payload.router_id)
+    if not target:
+        raise HTTPException(status_code=404, detail=f"Router with ID {payload.router_id} not found.")
+
+    await crud.set_user_active_router(db, payload.user_id, payload.router_id)
+    return target
 
 
 @router.get("/{router_id}", response_model=RouterOutSchema)

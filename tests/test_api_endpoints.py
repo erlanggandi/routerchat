@@ -54,6 +54,56 @@ async def test_routers_api_crud():
 
 
 @pytest.mark.asyncio
+async def test_multi_router_selection_api():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # Create Router 1
+        r1 = await client.post("/api/v1/routers", json={
+            "name": "router-pusat",
+            "host": "192.168.1.1",
+            "username": "admin",
+            "password": "pwd",
+        })
+        id_1 = r1.json()["id"]
+
+        # Create Router 2
+        r2 = await client.post("/api/v1/routers", json={
+            "name": "router-cabang",
+            "host": "192.168.2.1",
+            "username": "admin",
+            "password": "pwd",
+        })
+        id_2 = r2.json()["id"]
+
+        # List all routers (should have 2)
+        r_list = await client.get("/api/v1/routers")
+        assert len(r_list.json()) == 2
+
+        # Select router-cabang (id_2) for user 999
+        select_res = await client.post("/api/v1/routers/select", json={
+            "user_id": 999,
+            "router_id": id_2,
+        })
+        assert select_res.status_code == 200
+        assert select_res.json()["name"] == "router-cabang"
+
+        # Check active router
+        active_res = await client.get("/api/v1/routers/active?user_id=999")
+        assert active_res.status_code == 200
+        assert active_res.json()["id"] == id_2
+        assert active_res.json()["name"] == "router-cabang"
+
+        # Switch to router-pusat (id_1)
+        switch_res = await client.post("/api/v1/routers/select", json={
+            "user_id": 999,
+            "router_id": id_1,
+        })
+        assert switch_res.status_code == 200
+        active_res_2 = await client.get("/api/v1/routers/active?user_id=999")
+        assert active_res_2.json()["id"] == id_1
+        assert active_res_2.json()["name"] == "router-pusat"
+
+
+@pytest.mark.asyncio
 async def test_approvals_api_workflow():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # Create a router first

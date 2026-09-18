@@ -97,3 +97,66 @@ def reject_action(approval_id: str, user_id: int = 1) -> Dict[str, Any]:
         return resp.json()
     except Exception as e:
         return {"error": str(e)}
+
+
+# ---------------- Multi-Router Management ----------------
+
+def list_routers(active_only: bool = True) -> Any:
+    """Mendapatkan daftar semua router yang terdaftar."""
+    url = f"{MIKROTIK_BACKEND_URL}/api/v1/routers"
+    try:
+        resp = requests.get(url, params={"active_only": active_only}, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def add_router(
+    name: str,
+    host: str,
+    username: str,
+    password: str,
+    port: int = 8728,
+    use_ssl: bool = False,
+    description: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Mendaftarkan router baru ke sistem."""
+    url = f"{MIKROTIK_BACKEND_URL}/api/v1/routers"
+    payload = {
+        "name": name,
+        "host": host,
+        "username": username,
+        "password": password,
+        "port": port,
+        "use_ssl": use_ssl,
+        "description": description,
+    }
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def select_active_router(user_id: int, router_id: int) -> Dict[str, Any]:
+    """Memilih atau berganti router aktif untuk sesi pengguna."""
+    url = f"{MIKROTIK_BACKEND_URL}/api/v1/routers/select"
+    try:
+        resp = requests.post(url, json={"user_id": user_id, "router_id": router_id}, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def get_active_router(user_id: int) -> Dict[str, Any]:
+    """Mengecek router mana yang sedang aktif dikelola oleh pengguna."""
+    url = f"{MIKROTIK_BACKEND_URL}/api/v1/routers/active"
+    try:
+        resp = requests.get(url, params={"user_id": user_id}, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
