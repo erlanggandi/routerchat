@@ -26,9 +26,17 @@ fi
 echo "🐳 [2/3] Menjalankan MikroTik Backend Service di port 3010..."
 docker compose up -d --build
 
-echo "🔍 [3/3] Memeriksa status service..."
-sleep 2
-if curl -s http://localhost:3010/health | grep -q "ok"; then
+echo "🔍 [3/3] Memeriksa status service (menunggu hingga 15 detik)..."
+SUCCESS=0
+for i in $(seq 1 15); do
+    if curl -s http://localhost:3010/health | grep -q "ok"; then
+        SUCCESS=1
+        break
+    fi
+    sleep 1
+done
+
+if [ $SUCCESS -eq 1 ]; then
     echo "✅ MikroTik Service BERHASIL aktif di http://localhost:3010"
     echo "🎉 Hermes sekarang sudah memiliki skill MikroTik!"
     echo "💡 Anda bisa langsung chat ke bot Hermes di Telegram:"
@@ -36,5 +44,7 @@ if curl -s http://localhost:3010/health | grep -q "ok"; then
     echo "   - 'Berapa trafik ether1?'"
     echo "   - 'Siapa saja yang terhubung di DHCP?'"
 else
-    echo "⚠️ Service belum merespons, silakan periksa log dengan: docker compose logs -f"
+    echo "⚠️ Service belum merespons. Silakan cek status dan log dengan:"
+    echo "   docker compose ps"
+    echo "   docker compose logs -n 30"
 fi
